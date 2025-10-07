@@ -140,7 +140,7 @@ contract ZeroPaySubscription is Ownable {
      */
     function unplan(uint256 id) external {
         Plan storage p = plans[id];
-        require(p.merchant != msg.sender, "M02");
+        require(p.merchant == msg.sender, "M02");
 
         p.isActived = false;
 
@@ -172,8 +172,8 @@ contract ZeroPaySubscription is Ownable {
         // do first transfer
         uint256 fee = commission(p.amount);
         fees[s.token] += fee;
-        IERC20(s.token).safeTransfer(s.payer, p.amount);
-        IERC20(s.token).safeTransfer(m.receiver, p.amount - fee);
+        IERC20(s.token).safeTransferFrom(s.payer, address(this), fee);
+        IERC20(s.token).safeTransferFrom(s.payer, m.receiver, p.amount - fee);
 
         emit SubscriptionStarted(subscriptionId, _plan, _customer, msg.sender, _token, nextTime);
     }
@@ -208,8 +208,8 @@ contract ZeroPaySubscription is Ownable {
         // do transfer
         uint256 fee = commission(p.amount);
         fees[s.token] += fee;
-        IERC20(s.token).safeTransfer(s.payer, p.amount);
-        IERC20(s.token).safeTransfer(m.receiver, p.amount - fee);
+        IERC20(s.token).safeTransferFrom(s.payer, address(this), fee);
+        IERC20(s.token).safeTransferFrom(s.payer, m.receiver, p.amount - fee);
 
         emit SubscriptionClaimed(id);
 
