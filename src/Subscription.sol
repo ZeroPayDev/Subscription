@@ -28,11 +28,10 @@ contract ZeroPaySubscription is Ownable {
 
     /// @dev Struct representing a plan
     struct Subscription {
-        address plan;
+        uint256 plan;
         address payer;
         address customer;
         address token;
-        uint256 times;
         uint256 nextTime;
         bool isActived;
     }
@@ -71,7 +70,7 @@ contract ZeroPaySubscription is Ownable {
     event PlanCanceled(uint256 indexed id);
 
     /// @dev Event emitted when a subscription is started
-    event SubscriptionStarted(uint256 indexed id, uint256 plan, address customer, address token, uint256 times, uint256 nextTime);
+    event SubscriptionStarted(uint256 indexed id, uint256 plan, address customer, address payer, address token, uint256 nextTime);
 
     /// @dev Event emitted when a subscription is canceled
     event SubscriptionCanceled(uint256 indexed id);
@@ -117,10 +116,10 @@ contract ZeroPaySubscription is Ownable {
 
     /**
      * @dev Create new plan for merchant
-     * @param amount The amount of the new plan
-     * @param period The period seconds of the new plan
+     * @param _amount The amount of the new plan
+     * @param _period The period seconds of the new plan
      */
-    function plan(uint256 amount, uint256 period) external {
+    function plan(uint256 _amount, uint256 _period) external {
         Merchant storage m = merchants[msg.sender];
         require(m.receiver != address(0), "M01");
 
@@ -128,13 +127,17 @@ contract ZeroPaySubscription is Ownable {
 
         Plan storage p = plans[planId];
         p.merchant = msg.sender;
-        p.amount = amount;
-        p.period = period;
+        p.amount = _amount;
+        p.period = _period;
         p.isActived = true;
 
-        emit PlanStarted(planId, msg.sender, amount, period);
+        emit PlanStarted(planId, msg.sender, _amount, _period);
     }
 
+    /**
+     * @dev Cancel the plan from merchant
+     * @param id The id of the plan
+     */
     function unplan(uint256 id) external {
         Plan storage p = plans[id];
         require(p.merchant != msg.sender, "M02");
@@ -144,57 +147,80 @@ contract ZeroPaySubscription is Ownable {
         emit PlanCanceled(id);
     }
 
-    function subscripte(address plan, address customer, address token, uint256 times) external {
-        Plan storage p = plans[id];
+    /**
+     * @dev Create new subscription for customer
+     * @param _plan The plan id of the new subscription
+     * @param _customer The customer address of the new subscription
+     * @param _token The payment token of the new subscription
+     */
+    function subscripte(uint256 _plan, address _customer, address _token) external {
+        Plan storage p = plans[_plan];
         require(p.isActived, "M03");
+        Merchant storage m = merchants[p.merchant];
+        require(m.tokens[_token], "M04");
 
         subscriptionId += 1;
-        uint256 nextTime = block.timestamp + p.period; // because done first transfer
+        uint256 nextTime = block.timestamp + p.period; // because first transfer
         Subscription storage s = subscriptions[subscriptionId];
-        s.plan = plan;
+        s.plan = _plan;
         s.payer = msg.sender;
-        s.customer = customer;
-        s.token = token;
-        s.times = times - 1;
+        s.customer = _customer;
+        s.token = _token;
         s.nextTime = nextTime;
         s.isActived = true;
 
         // do first transfer
         uint256 fee = commission(p.amount);
-        fees[token] += fee;
-        IERC20(token).safeTransfer(s.payer, p.amount - fee);
+        fees[s.token] += fee;
+        IERC20(s.token).safeTransfer(s.payer, p.amount);
+        IERC20(s.token).safeTransfer(m.receiver, p.amount - fee);
 
-        emit SubscriotionStarted(subscriptionId, plan, customer, token, times, nextTime);
+        emit SubscriptionStarted(subscriptionId, _plan, _customer, msg.sender, _token, nextTime);
     }
 
+    /**
+     * @dev Cancel the subscription from customer
+     * @param id The id of the subscription
+     */
     function unsubscripte(uint256 id) external {
         Subscription storage s = subscriptions[id];
-        require(s.isActived, "M04");
+        require(s.isActived, "M05");
 
         s.isActived = false;
 
         emit SubscriptionCanceled(id);
     }
 
+    /**
+     * @dev Claim new period amount of a subscription
+     * @param id The id of the subscription
+     */
     function claim(uint256 id) external {
         Subscription storage s = subscriptions[id];
-        require(s.isActived, "M04");
-        require(block.timestamp >= s.nextTime, "M05");
+        require(s.isActived, "M05");
+        require(block.timestamp >= s.nextTime, "M06");
 
-        Plan storage p = plans[id];
-        s.nextTime = s.nextTime + p.peroid;
-        s.times -= 1;
+        Plan storage p = plans[s.plan];
+        Merchant storage m = merchants[p.merchant];
+
+        s.nextTime = s.nextTime + p.period;
 
         // do transfer
         uint256 fee = commission(p.amount);
-        fees[token] += fee;
-        IERC20(token).safeTransfer(s.payer, p.amount - fee);
+        fees[s.token] += fee;
+        IERC20(s.token).safeTransfer(s.payer, p.amount);
+        IERC20(s.token).safeTransfer(m.receiver, p.amount - fee);
 
         emit SubscriptionClaimed(id);
 
     }
 
-    function commission(uint256 amount) public returns (uint256) {
+    /**
+     * @dev Calculate the commission of the pay
+     * @param amount The amount of the pay
+     * @return The commission fee of the pay
+     */
+    function commission(uint256 amount) public view returns (uint256) {
         uint256 comm = amount * commissionRate / 100;
         if (comm < commissionMin) {
             return commissionMin;
@@ -207,10 +233,15 @@ contract ZeroPaySubscription is Ownable {
         return comm;
     }
 
-    function fee(address[] tokens, address payee) external onlyOwner {
-        for (uint i = 0; i < tokens.length; i++) {
-            address token = tokens[i];
-            IERC20(token).safeTransfer(fees[token], payee);
+    /**
+     * @dev Claim all the fee of the tokens for owner
+     * @param _tokens The token address
+     * @param _payee The receiver account
+     */
+    function claimFee(address[] memory _tokens, address _payee) external onlyOwner {
+        for (uint i = 0; i < _tokens.length; i++) {
+            address token = _tokens[i];
+            IERC20(token).safeTransfer(_payee, fees[token]);
         }
     }
 }
