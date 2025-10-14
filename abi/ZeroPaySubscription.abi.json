@@ -181,7 +181,7 @@
   },
   {
     "type": "function",
-    "name": "subscripte",
+    "name": "subscribe",
     "inputs": [
       {
         "name": "_plan",
@@ -292,7 +292,7 @@
   },
   {
     "type": "function",
-    "name": "unsubscripte",
+    "name": "unsubscribe",
     "inputs": [
       {
         "name": "id",

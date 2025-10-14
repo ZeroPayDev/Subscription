@@ -120,12 +120,12 @@ forge script script/Subscription.s.sol:SubscriptionScript --rpc-url http://local
 1. **Subscribe to Plan**
    ```solidity
    token.approve(subscriptionAddress, amount);
-   subscription.subscripte(planId, customerAddress, tokenAddress);
+   subscription.subscribe(planId, customerAddress, tokenAddress);
    ```
 
 2. **Cancel Subscription**
    ```solidity
-   subscription.unsubscripte(subscriptionId);
+   subscription.unsubscribe(subscriptionId);
    ```
 
 ### For Anyone

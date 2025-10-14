@@ -7,7 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 /**
  * @title ZeroPaySubscription
- * @dev Handles subscrption plan and subscription logic and claim
+ * @dev Handles subscription plan and subscription logic and claim
  */
 contract ZeroPaySubscription is Ownable {
     using SafeERC20 for IERC20;
@@ -36,13 +36,13 @@ contract ZeroPaySubscription is Ownable {
         bool isActived;
     }
 
-    /// @dev Commmission rate of the pay
+    /// @dev Commission rate of the pay
     uint256 private commissionRate;
 
-    /// @dev Commmission minimum of the pay
+    /// @dev Commission minimum of the pay
     uint256 private commissionMin;
 
-    /// @dev Commmission maximum of the pay
+    /// @dev Commission maximum of the pay
     uint256 private commissionMax;
 
     /// @dev Counter for plan IDs
@@ -75,7 +75,7 @@ contract ZeroPaySubscription is Ownable {
     /// @dev Event emitted when a subscription is canceled
     event SubscriptionCanceled(uint256 indexed id);
 
-    /// @dev Event emitted when a subscriotion claimed
+    /// @dev Event emitted when a subscription claimed
     event SubscriptionClaimed(uint256 indexed id);
 
     /**
@@ -153,7 +153,7 @@ contract ZeroPaySubscription is Ownable {
      * @param _customer The customer address of the new subscription
      * @param _token The payment token of the new subscription
      */
-    function subscripte(uint256 _plan, address _customer, address _token) external {
+    function subscribe(uint256 _plan, address _customer, address _token) external {
         Plan storage p = plans[_plan];
         require(p.isActived, "M03");
         Merchant storage m = merchants[p.merchant];
@@ -182,7 +182,7 @@ contract ZeroPaySubscription is Ownable {
      * @dev Cancel the subscription from customer
      * @param id The id of the subscription
      */
-    function unsubscripte(uint256 id) external {
+    function unsubscribe(uint256 id) external {
         Subscription storage s = subscriptions[id];
         require(s.isActived, "M05");
 

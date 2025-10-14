@@ -153,7 +153,7 @@ contract SubscriptionTest is Test {
         emit SubscriptionStarted(1, 1, customer, payer, address(token), expectedNextTime);
 
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
 
         (uint256 plan, address subPayer, address subCustomer, address subToken, uint256 nextTime, bool isActived) =
             subscription.subscriptions(1);
@@ -180,7 +180,7 @@ contract SubscriptionTest is Test {
 
         vm.expectRevert(bytes("M03"));
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
     }
 
     function testCreateSubscriptionRevertsUnsupportedToken() public {
@@ -191,7 +191,7 @@ contract SubscriptionTest is Test {
 
         vm.expectRevert(bytes("M04"));
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(unsupportedToken));
+        subscription.subscribe(1, customer, address(unsupportedToken));
     }
 
     function testCancelSubscription() public {
@@ -199,13 +199,13 @@ contract SubscriptionTest is Test {
         subscription.plan(planAmount, planPeriod);
 
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
 
         vm.expectEmit(true, false, false, false);
         emit SubscriptionCanceled(1);
 
         vm.prank(payer);
-        subscription.unsubscripte(1);
+        subscription.unsubscribe(1);
 
         (,,,,, bool isActived) = subscription.subscriptions(1);
         assertFalse(isActived);
@@ -216,7 +216,7 @@ contract SubscriptionTest is Test {
         subscription.plan(planAmount, planPeriod);
 
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
 
         uint256 payerBalanceBefore = token.balanceOf(payer);
         uint256 receiverBalanceBefore = token.balanceOf(receiver);
@@ -244,7 +244,7 @@ contract SubscriptionTest is Test {
         subscription.plan(planAmount, planPeriod);
 
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
 
         // Try to claim immediately
         vm.expectRevert(bytes("M06"));
@@ -256,10 +256,10 @@ contract SubscriptionTest is Test {
         subscription.plan(planAmount, planPeriod);
 
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
 
         vm.prank(payer);
-        subscription.unsubscripte(1);
+        subscription.unsubscribe(1);
 
         vm.warp(block.timestamp + planPeriod);
 
@@ -286,7 +286,7 @@ contract SubscriptionTest is Test {
         subscription.plan(planAmount, planPeriod);
 
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
 
         uint256 expectedFee = subscription.commission(planAmount);
 
@@ -320,7 +320,7 @@ contract SubscriptionTest is Test {
 
         // Create multiple subscriptions
         vm.prank(payer);
-        subscription.subscripte(1, customer, address(token));
+        subscription.subscribe(1, customer, address(token));
 
         address payer2 = address(12);
         token.mint(payer2, 10000e18);
@@ -328,7 +328,7 @@ contract SubscriptionTest is Test {
         token.approve(address(subscription), type(uint256).max);
 
         vm.prank(payer2);
-        subscription.subscripte(2, customer, address(token));
+        subscription.subscribe(2, customer, address(token));
 
         // Verify both subscriptions exist
         (uint256 plan1,,,,, bool isActived1) = subscription.subscriptions(1);
